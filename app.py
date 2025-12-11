@@ -207,7 +207,7 @@ def ejecutar_simulacion_streamlit(df_input, nombre_seleccionado, cupos_anuales):
         ascendidos_this_year = df_sim.iloc[:num_ascensos_a_ejecutar].copy()
         df_sim = df_sim.iloc[num_ascensos_a_ejecutar:].copy()
 
-        for _, row in ascendidos_this_year.iterrows():
+        for _, row in ascended_this_year.iterrows():
             return_data = row.copy()
             if return_data['Grado'] > 5:
                 return_data['Grado'] -= 1
@@ -241,8 +241,23 @@ if uploaded_file is not None:
         
         # Limpieza de columnas
         df_main.columns = [re.sub(r'\s+', ' ', c).strip() for c in df_main.columns]
-        df_main['Nombre_Completo'] = df_main['Apellido Paterno'] + " " + df_main['Apellido Materno'] + " " + df_main['Nombres']
-        df_main = df_main.sort_values('Puntaje total', ascending=False).reset_index(drop=True)
+        
+        # --- VERIFICACIÓN DE COLUMNAS ESENCIALES ---
+        required_cols = [
+            'Apellido Paterno', 'Apellido Materno', 'Nombres', # Para Nombre_Completo
+            'Estamento', 'Grado', 'Antigüedad en el servicio (meses)', 
+            'Antigüedad en el grado (meses)', 'Puntaje Calificación 2024-2025', # Para calcular_puntaje y simulación
+            'Puntaje total' # Para ordenamiento inicial
+        ]
+
+        missing_cols = [col for col in required_cols if col not in df_main.columns]
+        if missing_cols:
+            st.error(f"⚠️ ERROR: Faltan columnas esenciales en tu archivo. \nColumnas requeridas: {required_cols}\nColumnas encontradas: {list(df_main.columns)}\nPor favor, asegúrate de que tu archivo contenga todas las columnas con los nombres exactos.")
+            df_main = pd.DataFrame() # Vaciar df_main para detener la simulación
+        else:
+            # Continuar con el procesamiento si las columnas están presentes
+            df_main['Nombre_Completo'] = df_main['Apellido Paterno'] + " " + df_main['Apellido Materno'] + " " + df_main['Nombres']
+            df_main = df_main.sort_values('Puntaje total', ascending=False).reset_index(drop=True)
 
     except Exception as e:
         st.error(f"⚠️ ERROR al cargar el archivo o procesar datos: {e}")
